@@ -37,6 +37,20 @@ echo.
 echo You can now run:
 echo   * CLI Version: python youtube_Download-cli.py
 echo   * GUI Version: python youtube_downloader-gui.py
+echo   * Desktop Launcher: python desktop_launcher.py
+echo.
+echo ===============================================
+echo  Optional: Create Desktop Application
+echo ===============================================
+echo.
+echo To create a standalone .exe file that works
+echo without Python installation:
+echo.
+echo   1. Run: build_desktop.bat
+echo   2. Or manually: python build_desktop_app.py
+echo.
+echo This will create a professional desktop application
+echo with custom icon and proper Windows integration.
 echo.
 
 pause
