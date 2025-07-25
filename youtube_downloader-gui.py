@@ -715,179 +715,352 @@ class YouTubeDownloaderApp(ctk.CTk):
             self.download_all_button.configure(state=tk.DISABLED)
 
     def start_single_download(self, video_url):
-        """Prepares and starts the download of a single video in a new thread."""
-        if video_url in self.download_processes: # Prevent double-clicking
+        """Prepares and starts the download of a single video with enhanced options."""
+        if video_url in self.download_processes:
             return
         
-        # Disable global download all and enable global cancel all
         self.download_all_button.configure(state=tk.DISABLED)
         self.cancel_all_button.configure(state=tk.NORMAL)
         
         widgets = self.video_widgets[video_url]
         widgets['download_button'].configure(state=tk.DISABLED)
-        widgets['cancel_button'].configure(state=tk.NORMAL) # Enable cancel button
-        widgets['status_label'].configure(text="Starting...")
+        widgets['cancel_button'].configure(state=tk.NORMAL)
+        widgets['status_label'].configure(text="🔄 Initializing...")
+        widgets['video_frame'].configure(border_color=self.colors['primary'])
 
         download_thread = threading.Thread(target=self.run_download, args=(video_url,))
+        download_thread.daemon = True
         download_thread.start()
 
     def run_download(self, video_url):
-        """Executes the yt-dlp command for a single video."""
+        """Executes the yt-dlp command for a single video with enhanced features."""
         widgets = self.video_widgets[video_url]
-        full_output = [] # To store all lines from yt-dlp for final analysis
+        full_output = []
         
         try:
-            # Base command arguments
-            command = ["yt-dlp", "--progress"]
+            # Build command with enhanced options
+            command = ["yt-dlp", "--newline"]
             
-            # Add output template with selected path
+            # Output template with download path
             output_template = os.path.join(self.download_path, "%(title)s.%(ext)s")
             command.extend(["-o", output_template])
 
-            # Check if audio-only is selected for THIS video
-            if widgets['audio_only_var'].get():
-                command.extend(["--extract-audio", "--audio-format", "mp3", "--no-playlist"])
+            # Determine format based on global and individual settings
+            audio_only = self.global_audio_var.get() or widgets['audio_only_var'].get()
             
-            command.append(video_url) # Add the video URL last
+            if audio_only:
+                command.extend([
+                    "--extract-audio",
+                    "--audio-format", "mp3",
+                    "--audio-quality", "192K"
+                ])
+            else:
+                # Quality selection
+                quality = widgets['quality_var'].get()
+                global_quality = self.quality_var.get()
+                
+                if global_quality == "Audio Only (MP3)":
+                    command.extend([
+                        "--extract-audio", 
+                        "--audio-format", "mp3",
+                        "--audio-quality", "192K"
+                    ])
+                else:
+                    if quality == "Best" or global_quality == "Best Quality":
+                        command.extend(["-f", "best[ext=mp4]"])
+                    elif quality == "1080p":
+                        command.extend(["-f", "best[height<=1080][ext=mp4]"])
+                    elif quality == "720p":
+                        command.extend(["-f", "best[height<=720][ext=mp4]"])
+                    elif quality == "480p":
+                        command.extend(["-f", "best[height<=480][ext=mp4]"])
 
+            # Add additional options
+            command.extend([
+                "--no-playlist",
+                "--write-description",
+                "--write-info-json"
+            ])
+            
+            command.append(video_url)
+
+            # Start download process
             process = subprocess.Popen(
                 command,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT, # Merge stdout and stderr for simpler parsing
+                stderr=subprocess.STDOUT,
                 text=True,
-                bufsize=1, # Line-buffered output
+                bufsize=1,
                 universal_newlines=True
             )
+            
             self.download_processes[video_url] = process
             
-            # Read output in a loop to update progress
+            # Progress tracking
             progress_regex = re.compile(r'\[download\]\s+(\d+\.\d+)%')
+            speed_regex = re.compile(r'(\d+(?:\.\d+)?(?:K|M|G)?iB/s)')
+            eta_regex = re.compile(r'ETA\s+(\d+:\d+)')
             
             while True:
                 line = process.stdout.readline()
-                if not line: # No more output
+                if not line:
                     break
                 
-                full_output.append(line) # Store every line
+                full_output.append(line)
+                line = line.strip()
+                
+                if process.poll() is not None and not line:
+                    break
 
-                # Check if process terminated early (e.g., cancelled)
-                if process.poll() is not None and not line.strip(): 
-                    break # Exit if process is done and no more output
-
-                match = progress_regex.search(line)
-                if match:
+                # Update progress
+                progress_match = progress_regex.search(line)
+                if progress_match:
                     try:
-                        percentage = float(match.group(1)) / 100.0
+                        percentage = float(progress_match.group(1)) / 100.0
+                        
+                        # Extract speed and ETA
+                        speed_match = speed_regex.search(line)
+                        eta_match = eta_regex.search(line)
+                        
+                        speed_text = speed_match.group(1) if speed_match else "N/A"
+                        eta_text = eta_match.group(1) if eta_match else "N/A"
+                        
+                        status_text = f"⬇️ {percentage*100:.1f}% | 🚀 {speed_text} | ⏱️ {eta_text}"
+                        
                         self.after(0, lambda p=percentage: widgets['progress_bar'].set(p))
-                        self.after(0, lambda l=line.strip(): widgets['status_label'].configure(text=l))
+                        self.after(0, lambda s=status_text: widgets['status_label'].configure(text=s))
+                        
                     except (ValueError, IndexError):
-                        self.after(0, lambda l=line.strip(): widgets['status_label'].configure(text=l))
-                else:
-                    self.after(0, lambda l=line.strip(): widgets['status_label'].configure(text=l))
+                        pass
+                elif '[ExtractAudio]' in line:
+                    self.after(0, lambda: widgets['status_label'].configure(text="🎵 Extracting audio..."))
+                elif '[ffmpeg]' in line and 'Destination:' in line:
+                    self.after(0, lambda: widgets['status_label'].configure(text="🔄 Processing..."))
+                elif any(keyword in line.lower() for keyword in ['error', 'failed', 'unable']):
+                    self.after(0, lambda l=line: widgets['status_label'].configure(text=f"⚠️ {l[:50]}..."))
             
-            process.wait() # Wait for the subprocess to truly complete
-
-            # --- FINAL STATUS DETERMINATION ---
-            is_success = False
-            combined_output_str = "".join(full_output)
-
-            if process.returncode == 0:
-                is_success = True
-            else:
-                # Even if returncode is non-zero, check for success indicators in output
-                # This handles cases where yt-dlp exits with warnings but completes successfully
-                if (re.search(r'\[download\] 100%', combined_output_str) or # Explicit 100% download
-                    re.search(r'\[ExtractAudio\] Destination:', combined_output_str) or # Audio extracted
-                    re.search(r'\[ffmpeg\] Destination:', combined_output_str) or     # ffmpeg conversion/merge
-                    re.search(r'\[Merger\] Merging formats into', combined_output_str)): # Video/audio merged
-                    is_success = True
+            process.wait()
             
-            # Update UI on the main thread based on final determination
+            # Determine success
+            combined_output = "".join(full_output)
+            is_success = (process.returncode == 0 or 
+                         any(indicator in combined_output for indicator in [
+                             '[download] 100%',
+                             '[ExtractAudio] Destination:',
+                             '[ffmpeg] Destination:'
+                         ]))
+            
+            # Update UI based on result
             if is_success:
-                self.after(0, lambda: widgets['status_label'].configure(text="Download Completed!"))
-                self.after(0, lambda: widgets['progress_bar'].set(1.0)) # Ensure 100%
+                self.after(0, lambda: self._handle_successful_download(video_url))
             else:
-                error_message = combined_output_str.strip()
-                if not error_message: # Fallback if output is empty
-                    error_message = f"Unknown error (Exit Code: {process.returncode})"
-                self.after(0, lambda e_msg=error_message: widgets['status_label'].configure(text=f"Download Failed! {e_msg}"))
-                self.after(0, lambda: widgets['progress_bar'].set(0)) # Reset or show failed state
+                self.after(0, lambda: self._handle_failed_download(video_url, combined_output))
 
         except Exception as e:
-            self.after(0, lambda error_msg=e: widgets['status_label'].configure(text=f"Error: {error_msg}"))
+            self.after(0, lambda: self._handle_download_error(video_url, str(e)))
         finally:
-            # Cleanup and reset UI for this specific video
             if video_url in self.download_processes:
                 del self.download_processes[video_url]
             
-            self.after(0, lambda: widgets['download_button'].configure(state=tk.NORMAL))
-            self.after(0, lambda: widgets['cancel_button'].configure(state=tk.DISABLED))
-            
-            # Check if all downloads are complete to re-enable global download_all
+            self.after(0, lambda: self._cleanup_download_ui(video_url))
             self.after(0, self._check_global_buttons_state)
+
+    def _handle_successful_download(self, video_url):
+        """Handle successful download UI updates."""
+        widgets = self.video_widgets[video_url]
+        widgets['status_label'].configure(text="✅ Download completed!")
+        widgets['progress_bar'].set(1.0)
+        widgets['video_frame'].configure(border_color=self.colors['success'])
+        self.completed_downloads += 1
+        self.update_stats_display()
+
+    def _handle_failed_download(self, video_url, error_output):
+        """Handle failed download UI updates."""
+        widgets = self.video_widgets[video_url]
+        error_msg = "Download failed"
+        if "ERROR:" in error_output:
+            error_lines = [line for line in error_output.split('\n') if 'ERROR:' in line]
+            if error_lines:
+                error_msg = error_lines[-1].replace('ERROR:', '').strip()[:50]
+        
+        widgets['status_label'].configure(text=f"❌ {error_msg}")
+        widgets['progress_bar'].set(0)
+        widgets['video_frame'].configure(border_color=self.colors['danger'])
+        self.failed_downloads += 1
+        self.update_stats_display()
+
+    def _handle_download_error(self, video_url, error_message):
+        """Handle download exception UI updates."""
+        widgets = self.video_widgets[video_url]
+        widgets['status_label'].configure(text=f"⚠️ Error: {error_message[:30]}...")
+        widgets['progress_bar'].set(0)
+        widgets['video_frame'].configure(border_color=self.colors['warning'])
+        self.failed_downloads += 1
+        self.update_stats_display()
+
+    def _cleanup_download_ui(self, video_url):
+        """Clean up download UI elements."""
+        if video_url in self.video_widgets:
+            widgets = self.video_widgets[video_url]
+            widgets['download_button'].configure(state=tk.NORMAL)
+            widgets['cancel_button'].configure(state=tk.DISABLED)
 
 
     def download_all(self):
-        """Starts downloading all videos in the loaded playlist."""
+        """Starts downloading all videos in the loaded playlist with enhanced options."""
+        if not hasattr(self, 'video_info_list') or not self.video_info_list:
+            messagebox.showwarning("No Videos", "Please load a playlist first.")
+            return
+        
+        # Confirm download
+        response = messagebox.askyesno(
+            "Confirm Download", 
+            f"Are you sure you want to download all {len(self.video_info_list)} videos?\n\n"
+            f"Download path: {self.download_path}"
+        )
+        
+        if not response:
+            return
+        
         self.download_all_button.configure(state=tk.DISABLED)
         self.cancel_all_button.configure(state=tk.NORMAL)
+        self.status_label.configure(text="🚀 Starting batch download...")
         
-        for video_info in self.video_info_list:
+        # Reset counters
+        self.completed_downloads = 0
+        self.failed_downloads = 0
+        self.update_stats_display()
+        
+        # Start downloads with a small delay between each
+        for i, video_info in enumerate(self.video_info_list):
             video_url = video_info['url']
-            # Only start if not already downloading
             if video_url not in self.download_processes:
-                self.start_single_download(video_url)
+                # Use after() to stagger the start times slightly
+                self.after(i * 500, lambda url=video_url: self.start_single_download(url))
 
     def cancel_single_download(self, video_url):
-        """Terminates the subprocess for a specific video download."""
+        """Terminates the subprocess for a specific video download with enhanced feedback."""
         if video_url in self.download_processes:
             process = self.download_processes[video_url]
-            process.terminate() # Send termination signal
-            # The run_download's finally block will handle cleanup and UI reset
-            widgets = self.video_widgets[video_url]
-            self.after(0, lambda: widgets['status_label'].configure(text="Cancelling...")) # Immediate feedback
-            self.after(0, lambda: widgets['progress_bar'].set(0)) # Reset progress bar immediately
+            try:
+                process.terminate()
+                widgets = self.video_widgets[video_url]
+                widgets['status_label'].configure(text="🛑 Cancelling...")
+                widgets['progress_bar'].set(0)
+                widgets['video_frame'].configure(border_color=self.colors['warning'])
+                
+                # Give process time to terminate gracefully
+                self.after(2000, lambda: self._force_kill_process(video_url, process))
+            except Exception as e:
+                print(f"Error cancelling download: {e}")
+
+    def _force_kill_process(self, video_url, process):
+        """Force kill a process if it hasn't terminated gracefully."""
+        try:
+            if process.poll() is None:  # Process still running
+                process.kill()
+        except Exception:
+            pass
 
     def cancel_all(self):
-        """Terminates all active download subprocesses."""
-        self.status_label.configure(text="Cancelling all downloads...")
+        """Terminates all active download subprocesses with enhanced feedback."""
+        if not self.download_processes:
+            return
         
-        # Create a list of keys to avoid RuntimeError: dictionary changed size during iteration
-        keys_to_terminate = list(self.download_processes.keys())
-        for video_url in keys_to_terminate:
-            process = self.download_processes[video_url]
-            process.terminate()
-            # The run_download's finally block for each video will handle its cleanup.
-            widgets = self.video_widgets[video_url]
-            self.after(0, lambda: widgets['status_label'].configure(text="Cancelling...")) # Immediate feedback
-            self.after(0, lambda: widgets['progress_bar'].set(0)) # Reset progress bar immediately
-
-        # Global buttons will be reset by _check_global_buttons_state once all processes terminate
+        response = messagebox.askyesno(
+            "Confirm Cancel", 
+            f"Are you sure you want to cancel all {len(self.download_processes)} active downloads?"
+        )
+        
+        if not response:
+            return
+        
+        self.status_label.configure(text="🛑 Cancelling all downloads...")
+        
+        # Create a list to avoid dictionary size change during iteration
+        processes_to_cancel = list(self.download_processes.items())
+        
+        for video_url, process in processes_to_cancel:
+            try:
+                process.terminate()
+                if video_url in self.video_widgets:
+                    widgets = self.video_widgets[video_url]
+                    widgets['status_label'].configure(text="🛑 Cancelled")
+                    widgets['progress_bar'].set(0)
+                    widgets['video_frame'].configure(border_color=self.colors['warning'])
+            except Exception as e:
+                print(f"Error cancelling download for {video_url}: {e}")
 
     def monitor_downloads(self):
-        """Periodically checks the status of active downloads and updates UI."""
-        # The actual status update logic is now primarily within run_download's loop and finally block.
-        # This monitor is mainly for global button state and general app status.
-        
-        # We just need to check if there are any processes left to decide global button state
+        """Enhanced download monitoring with better state management."""
         self._check_global_buttons_state()
-
-        # Reschedule the next check
-        self.after(100, self.monitor_downloads)
+        
+        # Update overall progress if downloads are active
+        if self.download_processes:
+            active_count = len(self.download_processes)
+            self.status_label.configure(
+                text=f"📥 Downloading... {active_count} active downloads"
+            )
+        elif hasattr(self, 'video_info_list') and self.video_info_list and self.completed_downloads + self.failed_downloads > 0:
+            if self.completed_downloads + self.failed_downloads == len(self.video_info_list):
+                self.status_label.configure(text="✅ All downloads completed!")
+        
+        # Reschedule
+        self.after(500, self.monitor_downloads)
 
     def _check_global_buttons_state(self):
-        """Helper to enable/disable global Download All/Cancel All buttons."""
-        if not self.download_processes: # No active downloads
-            self.download_all_button.configure(state=tk.NORMAL)
+        """Enhanced global button state management."""
+        has_active_downloads = bool(self.download_processes)
+        has_videos = hasattr(self, 'video_info_list') and bool(self.video_info_list)
+        
+        if not has_active_downloads:
+            if has_videos:
+                self.download_all_button.configure(state=tk.NORMAL)
+            else:
+                self.download_all_button.configure(state=tk.DISABLED)
             self.cancel_all_button.configure(state=tk.DISABLED)
-            # Only change global status label if it's currently showing "Cancelling..."
-            if self.status_label.cget("text").startswith("Cancelling"):
-                 self.status_label.configure(text="All downloads finished or cancelled.")
         else:
             self.download_all_button.configure(state=tk.DISABLED)
             self.cancel_all_button.configure(state=tk.NORMAL)
 
+    def create_context_menu(self):
+        """Enhanced context menu for URL entry."""
+        self.context_menu = tk.Menu(self, tearoff=0)
+        self.context_menu.add_command(label="✂️ Cut", command=lambda: self.url_entry.event_generate("<<Cut>>"))
+        self.context_menu.add_command(label="📋 Copy", command=lambda: self.url_entry.event_generate("<<Copy>>"))
+        self.context_menu.add_command(label="📥 Paste", command=self.paste_from_clipboard)
+        self.context_menu.add_separator()
+        self.context_menu.add_command(label="🗑️ Clear", command=lambda: self.url_entry.delete(0, tk.END))
+
+        self.url_entry.bind("<Button-3>", self.show_context_menu)
+
+    def show_context_menu(self, event):
+        """Enhanced context menu display."""
+        try:
+            self.context_menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            self.context_menu.grab_release()
+
+    def paste_from_clipboard(self):
+        """Enhanced clipboard paste with validation."""
+        try:
+            clipboard_content = self.clipboard_get().strip()
+            if clipboard_content:
+                self.url_entry.delete(0, tk.END)
+                self.url_entry.insert(0, clipboard_content)
+                
+                # Auto-validate if it looks like a YouTube URL
+                if any(domain in clipboard_content.lower() for domain in ['youtube.com', 'youtu.be']):
+                    self.url_entry.configure(border_color=self.colors['success'])
+                    self.after(1000, lambda: self.url_entry.configure(border_color=""))
+        except tk.TclError:
+            messagebox.showwarning("Clipboard Error", "Could not access clipboard content.")
+
 
 if __name__ == "__main__":
-    app = YouTubeDownloaderApp()
-    app.mainloop()
+    try:
+        app = YouTubeDownloaderApp()
+        app.mainloop()
+    except Exception as e:
+        print(f"Application error: {e}")
+        messagebox.showerror("Application Error", f"Failed to start application:\n{e}")
