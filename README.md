@@ -100,6 +100,36 @@ python test_installation.py
 ```
 This will check all dependencies and validate your installation.
 
+## 🖥️ Desktop Application
+
+### Create a Professional Desktop App
+Transform your YouTube downloader into a standalone desktop application:
+
+```batch
+# Easy one-click build (Windows):
+build_desktop.bat
+
+# Or build manually:
+python build_desktop_app.py
+```
+
+### What You Get:
+- 🖥️ **Standalone .exe file** - No Python installation required
+- 🎨 **Custom icon and branding** - Professional YouTube-style icon
+- 📋 **Desktop shortcut** - Easy access from desktop
+- 🚀 **Distributable** - Share with anyone, works on any Windows PC
+- 📦 **All-in-one** - Includes all dependencies and libraries
+
+### Desktop App Features:
+- Professional Windows integration
+- Custom application icon
+- Proper taskbar behavior
+- Version information
+- Error handling dialogs
+- 45-60MB standalone executable
+
+📖 **Detailed Guide:** See [DESKTOP_APP_README.md](DESKTOP_APP_README.md)
+
 ## 📖 Usage
 
 ### 🖥️ CLI Version
