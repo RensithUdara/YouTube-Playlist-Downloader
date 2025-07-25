@@ -37,9 +37,25 @@ A professional-grade YouTube playlist downloader with both CLI and GUI interface
 - Python 3.7 or higher
 - pip (Python package installer)
 
-### Quick Setup
-1. **Clone or download** this repository
-2. **Install dependencies**:
+### 🎯 Easy Setup (Recommended)
+
+#### Option 1: Automatic Setup Script
+1. **Download** this repository
+2. **Run the setup script**:
+   
+   **Windows:**
+   ```batch
+   # Double-click setup.bat OR run in Command Prompt:
+   setup.bat
+   ```
+   
+   **All Platforms:**
+   ```bash
+   python setup.py
+   ```
+
+#### Option 2: Manual Installation
+1. **Install dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
@@ -49,7 +65,7 @@ A professional-grade YouTube playlist downloader with both CLI and GUI interface
    pip install yt-dlp customtkinter
    ```
 
-### Alternative Installation
+### 🔧 Alternative Installation
 If you prefer to install dependencies separately:
 ```bash
 # Core dependency for downloading
@@ -58,6 +74,24 @@ pip install yt-dlp
 # GUI dependency (only needed for GUI version)
 pip install customtkinter
 ```
+
+### ⚡ Quick Fix for "yt-dlp Not Found" Error
+If you see the error "yt-dlp is not installed or not in your system's PATH":
+
+1. **Run this command**:
+   ```bash
+   pip install yt-dlp
+   ```
+
+2. **Or use the setup script**:
+   ```bash
+   python setup.py
+   ```
+
+3. **Verify installation**:
+   ```bash
+   yt-dlp --version
+   ```
 
 ## 📖 Usage
 
@@ -139,30 +173,57 @@ Files are saved with the original video title as the filename, with special char
 
 ## 🐛 Troubleshooting
 
-### Common Issues
+### ⚠️ Common Issues & Quick Fixes
 
-1. **"yt-dlp not found" error**:
-   ```bash
-   pip install --upgrade yt-dlp
-   ```
+#### 1. **"yt-dlp not found" or "yt-dlp is not installed" error**
+This is the most common issue. Here are the solutions:
 
-2. **GUI not working**:
-   ```bash
-   pip install --upgrade customtkinter
-   ```
+**Quick Fix:**
+```bash
+pip install yt-dlp
+```
 
-3. **Download failures**:
-   - Check internet connection
-   - Verify the playlist URL is public
-   - Try updating yt-dlp: `pip install --upgrade yt-dlp`
+**If that doesn't work, try:**
+```bash
+# Update pip first
+python -m pip install --upgrade pip
 
-4. **Permission errors**:
-   - Choose a different download directory
-   - Run with administrator privileges if needed
+# Then install yt-dlp
+python -m pip install yt-dlp
+```
+
+**Windows users can also:**
+- Double-click `setup.bat` in the project folder
+- Or run `python setup.py`
+
+#### 2. **GUI not working or CustomTkinter errors**:
+```bash
+pip install --upgrade customtkinter
+```
+
+#### 3. **"pip is not recognized" error (Windows)**:
+- Make sure Python is installed with "Add to PATH" option checked
+- Or use: `python -m pip install yt-dlp customtkinter`
+
+#### 4. **Download failures**:
+- Check internet connection
+- Verify the playlist URL is public
+- Try updating yt-dlp: `pip install --upgrade yt-dlp`
+- Some videos may be region-restricted or private
+
+#### 5. **Permission errors**:
+- Choose a different download directory
+- Run Command Prompt/Terminal as administrator
+- Ensure you have write permissions to the download folder
+
+#### 6. **Python version issues**:
+- Ensure Python 3.7 or higher is installed
+- Check version: `python --version`
+- Update Python if needed from [python.org](https://www.python.org/)
 
 ### System Requirements
 - **Windows**: Windows 10 or higher
-- **macOS**: macOS 10.14 or higher
+- **macOS**: macOS 10.14 or higher  
 - **Linux**: Any modern distribution
 - **Python**: 3.7 or higher
 - **Internet**: Stable connection for downloading
