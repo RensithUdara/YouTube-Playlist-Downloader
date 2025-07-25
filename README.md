@@ -93,6 +93,13 @@ If you see the error "yt-dlp is not installed or not in your system's PATH":
    yt-dlp --version
    ```
 
+### 🧪 Testing Your Installation
+To verify everything is working correctly:
+```bash
+python test_installation.py
+```
+This will check all dependencies and validate your installation.
+
 ## 📖 Usage
 
 ### 🖥️ CLI Version
