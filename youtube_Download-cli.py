@@ -45,18 +45,27 @@ def check_dependencies():
     print(f"{Colors.OKCYAN}🔍 Checking dependencies...{Colors.ENDC}")
     
     try:
-        result = subprocess.run(["yt-dlp", "--version"], 
-                              check=True, 
-                              stdout=subprocess.PIPE, 
-                              stderr=subprocess.PIPE, 
-                              text=True)
-        version = result.stdout.strip()
+        # First try to import yt_dlp module
+        import yt_dlp
+        version = yt_dlp.version.__version__
         print(f"{Colors.OKGREEN}✅ yt-dlp found: {version}{Colors.ENDC}")
         return True
-    except FileNotFoundError:
-        print(f"{Colors.FAIL}❌ Error: yt-dlp is not installed or not in your system's PATH.{Colors.ENDC}")
-        print(f"{Colors.WARNING}📦 Please install it by running: pip install yt-dlp{Colors.ENDC}")
-        return False
+    except ImportError:
+        # If import fails, try command line
+        try:
+            result = subprocess.run(["yt-dlp", "--version"], 
+                                  check=True, 
+                                  stdout=subprocess.PIPE, 
+                                  stderr=subprocess.PIPE, 
+                                  text=True)
+            version = result.stdout.strip()
+            print(f"{Colors.OKGREEN}✅ yt-dlp found: {version}{Colors.ENDC}")
+            return True
+        except (FileNotFoundError, subprocess.CalledProcessError):
+            print(f"{Colors.FAIL}❌ Error: yt-dlp is not installed or not in your system's PATH.{Colors.ENDC}")
+            print(f"{Colors.WARNING}📦 Please install it by running: pip install yt-dlp{Colors.ENDC}")
+            print(f"{Colors.WARNING}📦 Or run the setup script: python setup.py{Colors.ENDC}")
+            return False
 
 def get_download_directory():
     """Get and validate download directory."""
@@ -122,13 +131,26 @@ def main():
         else:
             print(f"{Colors.FAIL}❌ Could not find any videos at that URL. Please try again.{Colors.ENDC}")
 
+def get_ytdlp_command():
+    """Get the appropriate yt-dlp command based on installation method."""
+    try:
+        # Try using yt-dlp as a command
+        subprocess.run(["yt-dlp", "--version"], 
+                      check=True, 
+                      stdout=subprocess.PIPE, 
+                      stderr=subprocess.PIPE)
+        return ["yt-dlp"]
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        # Fall back to using Python module
+        return [sys.executable, "-m", "yt_dlp"]
+
 def fetch_playlist_info(url):
     """Fetches video titles and URLs from a playlist with enhanced error handling."""
     try:
         print(f"{Colors.OKCYAN}⏳ Analyzing playlist structure...{Colors.ENDC}")
         
-        command = [
-            "yt-dlp",
+        ytdlp_cmd = get_ytdlp_command()
+        command = ytdlp_cmd + [
             "--flat-playlist",
             "-j",
             "--no-warnings",
@@ -324,6 +346,8 @@ def download_videos(videos_to_download, download_dir):
     failed_downloads = 0
     start_time = time.time()
     
+    ytdlp_cmd = get_ytdlp_command()
+    
     for i, video in enumerate(videos_to_download, 1):
         print(f"\n{Colors.OKCYAN}{'='*80}{Colors.ENDC}")
         print(f"{Colors.BOLD}📥 [{i}/{len(videos_to_download)}] Downloading:{Colors.ENDC}")
@@ -332,7 +356,7 @@ def download_videos(videos_to_download, download_dir):
         
         try:
             # Prepare command
-            command = ["yt-dlp", "--newline"]
+            command = ytdlp_cmd + ["--newline"]
             
             # Add output template
             output_template = os.path.join(download_dir, "%(title)s.%(ext)s")
