@@ -460,11 +460,24 @@ class YouTubeDownloaderApp(ctk.CTk):
         fetch_thread.daemon = True
         fetch_thread.start()
 
+    def get_ytdlp_command(self):
+        """Get the appropriate yt-dlp command based on installation method."""
+        try:
+            # Try using yt-dlp as a command
+            subprocess.run(["yt-dlp", "--version"], 
+                          check=True, 
+                          stdout=subprocess.PIPE, 
+                          stderr=subprocess.PIPE)
+            return ["yt-dlp"]
+        except (FileNotFoundError, subprocess.CalledProcessError):
+            # Fall back to using Python module
+            return [sys.executable, "-m", "yt_dlp"]
+
     def fetch_playlist_titles(self, url):
         """Fetches video titles and URLs from a playlist using yt-dlp with enhanced error handling."""
         try:
-            command = [
-                "yt-dlp", 
+            ytdlp_cmd = self.get_ytdlp_command()
+            command = ytdlp_cmd + [
                 "--flat-playlist", 
                 "-j", 
                 "--no-warnings",
@@ -507,7 +520,7 @@ class YouTubeDownloaderApp(ctk.CTk):
         except FileNotFoundError:
             self.after(0, lambda: messagebox.showerror(
                 "yt-dlp Not Found", 
-                "yt-dlp is not installed or not in your system's PATH.\n\nPlease install it using:\npip install yt-dlp"
+                "yt-dlp is not installed or not in your system's PATH.\n\nPlease install it using:\npip install yt-dlp\n\nOr run the setup script: python setup.py"
             ))
         except Exception as e:
             self.after(0, lambda: messagebox.showerror("Error", f"Failed to fetch playlist:\n{str(e)}"))
@@ -739,7 +752,8 @@ class YouTubeDownloaderApp(ctk.CTk):
         
         try:
             # Build command with enhanced options
-            command = ["yt-dlp", "--newline"]
+            ytdlp_cmd = self.get_ytdlp_command()
+            command = ytdlp_cmd + ["--newline"]
             
             # Output template with download path
             output_template = os.path.join(self.download_path, "%(title)s.%(ext)s")
