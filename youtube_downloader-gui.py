@@ -1915,6 +1915,10 @@ class YouTubeDownloaderApp(ctk.CTk):
             except Exception as e:
                 print(f"Error cancelling download for {video_url}: {e}")
 
+    def cancel_all_downloads(self):
+        """Alias for cancel_all method to maintain compatibility with enhanced UI."""
+        self.cancel_all()
+
     def monitor_downloads(self):
         """Enhanced download monitoring with better state management."""
         self._check_global_buttons_state()
