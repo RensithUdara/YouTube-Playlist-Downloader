@@ -9,6 +9,11 @@ import sys
 import re
 import time
 from datetime import datetime
+import webbrowser
+from PIL import Image, ImageTk
+import requests
+from io import BytesIO
+import urllib.parse
 
 # Set the appearance mode and color theme
 ctk.set_appearance_mode("dark")  # Modes: "System" (standard), "Dark", "Light"
@@ -20,30 +25,50 @@ class YouTubeDownloaderApp(ctk.CTk):
         super().__init__()
 
         # --- Window Configuration ---
-        self.title("YouTube Playlist Downloader Pro")
-        self.geometry("1000x700")
-        self.minsize(800, 600)
+        self.title("🎵 YouTube Playlist Downloader Pro")
+        self.geometry("1200x800")
+        self.minsize(1000, 700)
+        
+        # Set window icon if available
+        try:
+            if os.path.exists("icons/app_icon.ico"):
+                self.iconbitmap("icons/app_icon.ico")
+        except:
+            pass
         
         # Center window on screen
         self.center_window()
         
-        # --- Variables ---
+        # --- Enhanced Variables ---
         self.download_processes = {}
         self.video_widgets = {}
+        self.video_data = {}
         self.is_fetching = False
-        self.download_path = os.path.join(os.path.expanduser("~"), "Downloads")
+        self.download_path = os.path.join(os.path.expanduser("~"), "Downloads", "YouTube Downloads")
         self.total_videos = 0
         self.completed_downloads = 0
         self.failed_downloads = 0
+        self.download_history = []
+        self.favorites = []
+        self.current_playlist_info = {}
         
-        # --- Styling ---
+        # Create download directory if it doesn't exist
+        os.makedirs(self.download_path, exist_ok=True)
+        
+        # --- Enhanced Styling ---
         self.setup_styles()
+        
+        # --- Load user preferences ---
+        self.load_preferences()
         
         # --- GUI Elements ---
         self.create_widgets()
         
         # --- Start monitoring downloads ---
         self.after(100, self.monitor_downloads)
+        
+        # --- Initialize tooltips ---
+        self.setup_tooltips()
 
     def center_window(self):
         """Center the window on the screen."""
