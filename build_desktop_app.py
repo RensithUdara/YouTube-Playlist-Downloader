@@ -4,6 +4,7 @@ Desktop Application Builder for YouTube Playlist Downloader Pro
 Creates a standalone desktop application using PyInstaller.
 """
 
+import utils.session
 import os
 import sys
 import subprocess

@@ -1919,6 +1919,128 @@ class YouTubeDownloaderApp(ctk.CTk):
         """Alias for cancel_all method to maintain compatibility with enhanced UI."""
         self.cancel_all()
 
+    # === MISSING TAB METHODS ===
+    
+    def refresh_history(self):
+        """Refresh the download history display."""
+        if hasattr(self, 'history_frame'):
+            for widget in self.history_frame.winfo_children():
+                widget.destroy()
+            # Add message if no history
+            ctk.CTkLabel(
+                self.history_frame,
+                text="📝 No download history yet",
+                font=self.fonts['body'],
+                text_color=self.colors['text_secondary']
+            ).pack(pady=50)
+
+    def clear_history(self):
+        """Clear download history."""
+        if messagebox.askyesno("Clear History", "Remove all download history?"):
+            self.download_history.clear()
+            self.refresh_history()
+            self.show_notification("🗑️ History cleared", "info")
+
+    def export_history(self):
+        """Export download history to CSV."""
+        try:
+            filename = filedialog.asksaveasfilename(
+                defaultextension=".csv",
+                filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
+            )
+            if filename:
+                with open(filename, 'w') as f:
+                    f.write("Title,URL,Date,Status\n")
+                    for item in self.download_history:
+                        f.write(f"{item.get('title','')},{item.get('url','')},{item.get('date','')},{item.get('status','')}\n")
+                self.show_notification("📊 History exported successfully", "success")
+        except Exception as e:
+            self.show_notification(f"❌ Export failed: {str(e)}", "error")
+
+    def refresh_favorites_display(self):
+        """Refresh the favorites tab display."""
+        if hasattr(self, 'favorites_frame'):
+            for widget in self.favorites_frame.winfo_children():
+                widget.destroy()
+            
+            if not self.favorites:
+                ctk.CTkLabel(
+                    self.favorites_frame,
+                    text="⭐ No favorite playlists yet",
+                    font=self.fonts['body'],
+                    text_color=self.colors['text_secondary']
+                ).pack(pady=50)
+            else:
+                for i, favorite in enumerate(self.favorites):
+                    self.create_favorite_item(self.favorites_frame, favorite, i)
+
+    def create_favorite_item(self, parent, favorite, index):
+        """Create a favorite item widget."""
+        item_frame = ctk.CTkFrame(parent, fg_color=self.colors['surface_light'])
+        item_frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        info_frame = ctk.CTkFrame(item_frame, fg_color="transparent")
+        info_frame.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=10, pady=10)
+        
+        ctk.CTkLabel(
+            info_frame,
+            text=favorite.get('title', 'Unknown Playlist'),
+            font=self.fonts['body'],
+            anchor="w"
+        ).pack(anchor="w")
+        
+        ctk.CTkLabel(
+            info_frame,
+            text=f"📺 {favorite.get('video_count', 0)} videos • Added: {favorite.get('added_date', '')[:10]}",
+            font=self.fonts['small'],
+            text_color=self.colors['text_secondary'],
+            anchor="w"
+        ).pack(anchor="w")
+        
+        buttons_frame = ctk.CTkFrame(item_frame, fg_color="transparent")
+        buttons_frame.pack(side=tk.RIGHT, padx=10, pady=10)
+        
+        ctk.CTkButton(
+            buttons_frame,
+            text="📎 Load",
+            command=lambda: self.load_favorite(favorite),
+            width=60,
+            height=25,
+            font=ctk.CTkFont(size=10)
+        ).pack(side=tk.LEFT, padx=2)
+        
+        ctk.CTkButton(
+            buttons_frame,
+            text="🗑️",
+            command=lambda: self.remove_favorite(index),
+            width=30,
+            height=25,
+            font=ctk.CTkFont(size=10),
+            fg_color=self.colors['danger']
+        ).pack(side=tk.LEFT, padx=2)
+
+    def load_favorite(self, favorite):
+        """Load a favorite playlist."""
+        self.url_entry.delete(0, tk.END)
+        self.url_entry.insert(0, favorite.get('url', ''))
+        self.tabview.set("🎵 Downloader")
+        self.start_fetch_thread()
+
+    def remove_favorite(self, index):
+        """Remove a favorite from the list."""
+        if messagebox.askyesno("Remove Favorite", "Remove this playlist from favorites?"):
+            if 0 <= index < len(self.favorites):
+                del self.favorites[index]
+                self.save_favorites()
+                self.refresh_favorites_display()
+
+    def clear_favorites(self):
+        """Clear all favorites."""
+        if messagebox.askyesno("Clear Favorites", "Remove all favorite playlists?"):
+            self.favorites.clear()
+            self.save_favorites()
+            self.refresh_favorites_display()
+
     def monitor_downloads(self):
         """Enhanced download monitoring with better state management."""
         self._check_global_buttons_state()
