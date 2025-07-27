@@ -114,95 +114,949 @@ class YouTubeDownloaderApp(ctk.CTk):
         }
 
     def create_widgets(self):
-        # Main container with padding
-        main_container = ctk.CTkFrame(self, fg_color="transparent")
-        main_container.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
-        
-        # Header section with title and logo
-        self.create_header(main_container)
-        
-        # URL input section
-        self.create_url_section(main_container)
-        
-        # Download path section
-        self.create_path_section(main_container)
-        
-        # Options section
-        self.create_options_section(main_container)
-        
-        # Status section
-        self.create_status_section(main_container)
-        
-        # Video list section
-        self.create_video_list_section(main_container)
-        
-        # Control buttons section
-        self.create_control_buttons(main_container)
-        
-        # Footer section
-        self.create_footer(main_container)
-        
-        # Initialize context menu
-        self.create_context_menu()
+        # Create main tabbed interface
+        self.create_main_tabs()
 
-    def create_header(self, parent):
-        """Create the header section with title and description."""
-        header_frame = ctk.CTkFrame(parent, height=80, fg_color=self.colors['primary'])
+    def create_main_tabs(self):
+        """Create the main tabbed interface."""
+        # Main container
+        main_container = ctk.CTkFrame(self, fg_color="transparent")
+        main_container.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
+        
+        # Create tabview
+        self.tabview = ctk.CTkTabview(main_container, height=750)
+        self.tabview.pack(fill=tk.BOTH, expand=True)
+        
+        # Create tabs
+        self.tab_downloader = self.tabview.add("🎵 Downloader")
+        self.tab_history = self.tabview.add("📜 History") 
+        self.tab_favorites = self.tabview.add("⭐ Favorites")
+        self.tab_settings = self.tabview.add("⚙️ Settings")
+        self.tab_about = self.tabview.add("ℹ️ About")
+        
+        # Setup each tab
+        self.setup_downloader_tab()
+        self.setup_history_tab()
+        self.setup_favorites_tab()
+        self.setup_settings_tab()
+        self.setup_about_tab()
+
+    def setup_downloader_tab(self):
+        """Setup the main downloader tab with enhanced UI."""
+        tab = self.tab_downloader
+        
+        # Header section with animated gradient effect
+        self.create_enhanced_header(tab)
+        
+        # Quick actions toolbar
+        self.create_quick_actions(tab)
+        
+        # URL input section with validation
+        self.create_enhanced_url_section(tab)
+        
+        # Download path and options
+        options_container = ctk.CTkFrame(tab, fg_color="transparent")
+        options_container.pack(fill=tk.X, pady=(0, 15))
+        
+        # Left side - Path and basic options
+        left_options = ctk.CTkFrame(options_container, fg_color=self.colors['surface'])
+        left_options.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 7))
+        self.create_enhanced_path_section(left_options)
+        
+        # Right side - Advanced options
+        right_options = ctk.CTkFrame(options_container, fg_color=self.colors['surface'])
+        right_options.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(7, 0))
+        self.create_advanced_options(right_options)
+        
+        # Playlist info section
+        self.create_playlist_info_section(tab)
+        
+        # Enhanced status section with real-time stats
+        self.create_enhanced_status_section(tab)
+        
+        # Video list with preview thumbnails
+        self.create_enhanced_video_list_section(tab)
+        
+        # Enhanced control buttons with more options
+        self.create_enhanced_control_buttons(tab)
+
+    def create_enhanced_header(self, parent):
+        """Create an enhanced header with gradient effect and animations."""
+        header_frame = ctk.CTkFrame(parent, height=100, fg_color=self.colors['primary'])
         header_frame.pack(fill=tk.X, pady=(0, 20))
         header_frame.pack_propagate(False)
         
-        # Title
+        # Main title with YouTube-style branding
         title_label = ctk.CTkLabel(
             header_frame, 
             text="🎵 YouTube Playlist Downloader Pro",
-            font=ctk.CTkFont(size=24, weight="bold"),
+            font=self.fonts['title'],
             text_color="white"
         )
         title_label.pack(pady=(15, 5))
         
-        # Subtitle
+        # Subtitle with feature highlights
         subtitle_label = ctk.CTkLabel(
             header_frame,
-            text="Professional grade YouTube playlist downloading with advanced features",
-            font=ctk.CTkFont(size=12),
-            text_color="#E0E0E0"
+            text="✨ High-Quality Downloads • Batch Processing • Smart Organization • History Tracking",
+            font=self.fonts['subtitle'],
+            text_color="#FFE0E0"
         )
         subtitle_label.pack()
+        
+        # Version and status indicator
+        version_frame = ctk.CTkFrame(header_frame, fg_color="transparent")
+        version_frame.pack(fill=tk.X, padx=20, pady=(5, 5))
+        
+        version_label = ctk.CTkLabel(
+            version_frame,
+            text="v2.0 Pro",
+            font=ctk.CTkFont(size=10),
+            text_color="#CCCCCC"
+        )
+        version_label.pack(side=tk.LEFT)
+        
+        # Live status indicator
+        self.status_dot = ctk.CTkLabel(
+            version_frame,
+            text="🟢 Ready",
+            font=ctk.CTkFont(size=10),
+            text_color="#00FF00"
+        )
+        self.status_dot.pack(side=tk.RIGHT)
 
-    def create_url_section(self, parent):
-        """Create the URL input section."""
+    def create_quick_actions(self, parent):
+        """Create quick action buttons toolbar."""
+        toolbar_frame = ctk.CTkFrame(parent, height=50, fg_color=self.colors['surface'])
+        toolbar_frame.pack(fill=tk.X, pady=(0, 15))
+        toolbar_frame.pack_propagate(False)
+        
+        # Quick action buttons
+        buttons_frame = ctk.CTkFrame(toolbar_frame, fg_color="transparent")
+        buttons_frame.pack(expand=True, pady=10)
+        
+        # Paste URL button
+        self.paste_button = ctk.CTkButton(
+            buttons_frame,
+            text="📋 Paste URL",
+            command=self.paste_url_from_clipboard,
+            width=100,
+            height=30,
+            font=self.fonts['small']
+        )
+        self.paste_button.pack(side=tk.LEFT, padx=5)
+        
+        # Clear all button  
+        self.clear_button = ctk.CTkButton(
+            buttons_frame,
+            text="🗑️ Clear",
+            command=self.clear_all,
+            width=80,
+            height=30,
+            font=self.fonts['small'],
+            fg_color=self.colors['warning']
+        )
+        self.clear_button.pack(side=tk.LEFT, padx=5)
+        
+        # Open download folder
+        self.open_folder_button = ctk.CTkButton(
+            buttons_frame,
+            text="📁 Open Folder",
+            command=self.open_download_folder,
+            width=120,
+            height=30,
+            font=self.fonts['small'],
+            fg_color=self.colors['info']
+        )
+        self.open_folder_button.pack(side=tk.LEFT, padx=5)
+        
+        # Refresh playlist button
+        self.refresh_button = ctk.CTkButton(
+            buttons_frame,
+            text="🔄 Refresh",
+            command=self.refresh_playlist,
+            width=100,
+            height=30,
+            font=self.fonts['small'],
+            fg_color=self.colors['accent']
+        )
+        self.refresh_button.pack(side=tk.LEFT, padx=5)
+
+    def create_enhanced_url_section(self, parent):
+        """Create enhanced URL input with validation and suggestions."""
         url_frame = ctk.CTkFrame(parent, fg_color=self.colors['surface'])
         url_frame.pack(fill=tk.X, pady=(0, 15))
         
+        # Header with icon and instructions
+        header_frame = ctk.CTkFrame(url_frame, fg_color="transparent")
+        header_frame.pack(fill=tk.X, padx=15, pady=(15, 10))
+        
         url_label = ctk.CTkLabel(
-            url_frame, 
-            text="📎 Playlist URL:",
-            font=ctk.CTkFont(size=14, weight="bold")
+            header_frame, 
+            text="🔗 Playlist URL",
+            font=self.fonts['heading'],
+            text_color=self.colors['text_primary']
         )
-        url_label.pack(anchor="w", padx=15, pady=(15, 5))
-
-        # URL input with button in same row
+        url_label.pack(side=tk.LEFT)
+        
+        # URL validation indicator
+        self.url_status = ctk.CTkLabel(
+            header_frame,
+            text="",
+            font=ctk.CTkFont(size=10),
+            text_color=self.colors['text_secondary']
+        )
+        self.url_status.pack(side=tk.RIGHT)
+        
+        # URL input with enhanced styling
         input_frame = ctk.CTkFrame(url_frame, fg_color="transparent")
-        input_frame.pack(fill=tk.X, padx=15, pady=(0, 15))
+        input_frame.pack(fill=tk.X, padx=15, pady=(0, 10))
 
         self.url_entry = ctk.CTkEntry(
             input_frame,
-            placeholder_text="https://www.youtube.com/playlist?list=...",
-            height=40,
-            font=ctk.CTkFont(size=12)
+            placeholder_text="🎵 Enter YouTube playlist URL (e.g., https://youtube.com/playlist?list=...)",
+            height=45,
+            font=self.fonts['body'],
+            border_width=2,
+            border_color=self.colors['border']
         )
         self.url_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
+        self.url_entry.bind('<KeyRelease>', self.validate_url)
+        self.url_entry.bind('<Return>', lambda e: self.start_fetch_thread())
 
         self.load_button = ctk.CTkButton(
             input_frame,
             text="🔍 Load Playlist",
             command=self.start_fetch_thread,
-            height=40,
+            height=45,
             width=150,
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color=self.colors['primary']
+            font=self.fonts['button'],
+            fg_color=self.colors['primary'],
+            hover_color=self.colors['primary_dark']
         )
         self.load_button.pack(side=tk.RIGHT)
+        
+        # URL suggestions/history
+        self.create_url_suggestions(url_frame)
+
+    def create_url_suggestions(self, parent):
+        """Create URL suggestions dropdown."""
+        suggestions_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        suggestions_frame.pack(fill=tk.X, padx=15, pady=(0, 15))
+        
+        ctk.CTkLabel(
+            suggestions_frame,
+            text="💡 Recent playlists:",
+            font=ctk.CTkFont(size=10),
+            text_color=self.colors['text_secondary']
+        ).pack(side=tk.LEFT)
+
+    def create_enhanced_path_section(self, parent):
+        """Create enhanced download path section with organization options."""
+        # Header
+        ctk.CTkLabel(
+            parent,
+            text="📁 Download Settings",
+            font=self.fonts['heading']
+        ).pack(anchor="w", padx=15, pady=(15, 10))
+        
+        # Path selection
+        path_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        path_frame.pack(fill=tk.X, padx=15, pady=(0, 10))
+        
+        self.path_label = ctk.CTkLabel(
+            path_frame,
+            text=f"📂 {self.download_path}",
+            font=self.fonts['small'],
+            anchor="w",
+            text_color=self.colors['text_secondary']
+        )
+        self.path_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        
+        self.path_button = ctk.CTkButton(
+            path_frame,
+            text="📁 Browse",
+            command=self.select_download_path,
+            height=30,
+            width=80,
+            font=self.fonts['small']
+        )
+        self.path_button.pack(side=tk.RIGHT)
+        
+        # Organization options
+        org_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        org_frame.pack(fill=tk.X, padx=15, pady=(0, 15))
+        
+        self.organize_folders_var = ctk.BooleanVar(value=True)
+        ctk.CTkCheckBox(
+            org_frame,
+            text="📂 Create playlist folders",
+            variable=self.organize_folders_var,
+            font=self.fonts['small']
+        ).pack(anchor="w", pady=2)
+        
+        self.add_numbers_var = ctk.BooleanVar(value=True)
+        ctk.CTkCheckBox(
+            org_frame,
+            text="🔢 Add track numbers",
+            variable=self.add_numbers_var,
+            font=self.fonts['small']
+        ).pack(anchor="w", pady=2)
+
+    def create_advanced_options(self, parent):
+        """Create advanced download options."""
+        # Header
+        ctk.CTkLabel(
+            parent,
+            text="⚙️ Quality & Format",
+            font=self.fonts['heading']
+        ).pack(anchor="w", padx=15, pady=(15, 10))
+        
+        options_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        options_frame.pack(fill=tk.X, padx=15, pady=(0, 10))
+        
+        # Quality selection with preview
+        quality_frame = ctk.CTkFrame(options_frame, fg_color="transparent")
+        quality_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        ctk.CTkLabel(
+            quality_frame, 
+            text="🎥 Video Quality:",
+            font=self.fonts['small']
+        ).pack(anchor="w")
+        
+        self.quality_var = ctk.StringVar(value="Best Available")
+        self.quality_dropdown = ctk.CTkOptionMenu(
+            quality_frame,
+            values=[
+                "Best Available",
+                "4K (2160p)",
+                "1440p",
+                "1080p HD", 
+                "720p HD",
+                "480p",
+                "360p",
+                "Audio Only (Best)",
+                "Audio Only (320kbps)",
+                "Audio Only (128kbps)"
+            ],
+            variable=self.quality_var,
+            width=180,
+            command=self.on_quality_change
+        )
+        self.quality_dropdown.pack(anchor="w", pady=(5, 0))
+        
+        # Format options
+        format_frame = ctk.CTkFrame(options_frame, fg_color="transparent")
+        format_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        ctk.CTkLabel(
+            format_frame,
+            text="📝 Format Options:",
+            font=self.fonts['small']
+        ).pack(anchor="w")
+        
+        self.subtitle_var = ctk.BooleanVar()
+        ctk.CTkCheckBox(
+            format_frame,
+            text="📜 Download subtitles",
+            variable=self.subtitle_var,
+            font=ctk.CTkFont(size=10)
+        ).pack(anchor="w", pady=2)
+        
+        self.thumbnail_var = ctk.BooleanVar(value=True)
+        ctk.CTkCheckBox(
+            format_frame,
+            text="🖼️ Save thumbnails",
+            variable=self.thumbnail_var,
+            font=ctk.CTkFont(size=10)
+        ).pack(anchor="w", pady=2)
+
+    def create_playlist_info_section(self, parent):
+        """Create playlist information display."""
+        self.playlist_info_frame = ctk.CTkFrame(parent, fg_color=self.colors['surface'])
+        # Initially hidden
+        
+        # Playlist header
+        info_header = ctk.CTkFrame(self.playlist_info_frame, fg_color="transparent")
+        info_header.pack(fill=tk.X, padx=15, pady=(15, 10))
+        
+        self.playlist_title_label = ctk.CTkLabel(
+            info_header,
+            text="",
+            font=self.fonts['heading'],
+            anchor="w"
+        )
+        self.playlist_title_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        
+        self.playlist_stats_label = ctk.CTkLabel(
+            info_header,
+            text="",
+            font=self.fonts['small'],
+            text_color=self.colors['text_secondary']
+        )
+        self.playlist_stats_label.pack(side=tk.RIGHT)
+        
+        # Playlist description (collapsible)
+        self.playlist_desc_label = ctk.CTkLabel(
+            self.playlist_info_frame,
+            text="",
+            font=self.fonts['small'],
+            text_color=self.colors['text_secondary'],
+            anchor="w",
+            wraplength=800
+        )
+        self.playlist_desc_label.pack(fill=tk.X, padx=15, pady=(0, 15))
+
+    def create_enhanced_status_section(self, parent):
+        """Create enhanced status section with real-time statistics."""
+        status_frame = ctk.CTkFrame(parent, height=70, fg_color=self.colors['surface'])
+        status_frame.pack(fill=tk.X, pady=(0, 15))
+        status_frame.pack_propagate(False)
+        
+        # Main status display
+        status_content = ctk.CTkFrame(status_frame, fg_color="transparent")
+        status_content.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
+        
+        # Status text with icon
+        status_left = ctk.CTkFrame(status_content, fg_color="transparent")
+        status_left.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        
+        self.status_label = ctk.CTkLabel(
+            status_left,
+            text="📋 Ready - Paste a playlist URL to begin downloading",
+            font=self.fonts['body'],
+            anchor="w",
+            text_color=self.colors['text_primary']
+        )
+        self.status_label.pack(side=tk.TOP, fill=tk.X)
+        
+        # Progress bar
+        self.progress_bar = ctk.CTkProgressBar(
+            status_left,
+            width=300,
+            height=8,
+            progress_color=self.colors['success']
+        )
+        self.progress_bar.pack(side=tk.TOP, fill=tk.X, pady=(5, 0))
+        self.progress_bar.set(0)
+        
+        # Statistics panel
+        stats_frame = ctk.CTkFrame(status_content, width=200, fg_color=self.colors['surface_light'])
+        stats_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=(10, 0))
+        stats_frame.pack_propagate(False)
+        
+        self.stats_total_label = ctk.CTkLabel(
+            stats_frame,
+            text="Total: 0",
+            font=self.fonts['small'],
+            text_color=self.colors['text_secondary']
+        )
+        self.stats_total_label.pack(pady=2)
+        
+        self.stats_completed_label = ctk.CTkLabel(
+            stats_frame,
+            text="✅ Completed: 0",
+            font=self.fonts['small'],
+            text_color=self.colors['success']
+        )
+        self.stats_completed_label.pack(pady=2)
+        
+        self.stats_failed_label = ctk.CTkLabel(
+            stats_frame,
+            text="❌ Failed: 0",
+            font=self.fonts['small'],
+            text_color=self.colors['danger']
+        )
+        self.stats_failed_label.pack(pady=2)
+
+    def create_enhanced_video_list_section(self, parent):
+        """Create enhanced video list with thumbnails and detailed info."""
+        # Header with controls
+        list_header = ctk.CTkFrame(parent, fg_color="transparent")
+        list_header.pack(fill=tk.X, pady=(0, 10))
+        
+        list_label = ctk.CTkLabel(
+            list_header,
+            text="📺 Playlist Videos",
+            font=self.fonts['heading']
+        )
+        list_label.pack(side=tk.LEFT)
+        
+        # List controls
+        controls_frame = ctk.CTkFrame(list_header, fg_color="transparent")
+        controls_frame.pack(side=tk.RIGHT)
+        
+        # Select all/none buttons
+        self.select_all_button = ctk.CTkButton(
+            controls_frame,
+            text="☑️ All",
+            command=self.select_all_videos,
+            width=60,
+            height=25,
+            font=ctk.CTkFont(size=10)
+        )
+        self.select_all_button.pack(side=tk.LEFT, padx=2)
+        
+        self.select_none_button = ctk.CTkButton(
+            controls_frame,
+            text="☐ None", 
+            command=self.select_no_videos,
+            width=60,
+            height=25,
+            font=ctk.CTkFont(size=10)
+        )
+        self.select_none_button.pack(side=tk.LEFT, padx=2)
+        
+        # View mode toggle
+        self.view_mode_var = ctk.StringVar(value="List")
+        self.view_toggle = ctk.CTkOptionMenu(
+            controls_frame,
+            values=["List", "Grid", "Compact"],
+            variable=self.view_mode_var,
+            width=80,
+            height=25,
+            command=self.change_view_mode
+        )
+        self.view_toggle.pack(side=tk.LEFT, padx=2)
+        
+        # Enhanced scrollable frame
+        self.video_list_frame = ctk.CTkScrollableFrame(
+            parent,
+            fg_color=self.colors['surface'],
+            scrollbar_button_color=self.colors['primary'],
+            scrollbar_button_hover_color=self.colors['primary_dark']
+        )
+        self.video_list_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 15))
+
+    def create_enhanced_control_buttons(self, parent):
+        """Create enhanced control buttons with more options."""
+        button_container = ctk.CTkFrame(parent, fg_color="transparent")
+        button_container.pack(fill=tk.X, pady=(0, 15))
+
+        # Main action buttons
+        main_buttons = ctk.CTkFrame(button_container, fg_color="transparent")
+        main_buttons.pack(side=tk.LEFT)
+
+        self.download_selected_button = ctk.CTkButton(
+            main_buttons,
+            text="⬇️ Download Selected",
+            command=self.download_selected,
+            state=tk.DISABLED,
+            height=45,
+            width=180,
+            font=self.fonts['large_button'],
+            fg_color=self.colors['success'],
+            hover_color="#00A041"
+        )
+        self.download_selected_button.pack(side=tk.LEFT, padx=(0, 10))
+
+        self.download_all_button = ctk.CTkButton(
+            main_buttons,
+            text="⬇️ Download All",
+            command=self.download_all,
+            state=tk.DISABLED,
+            height=45,
+            width=150,
+            font=self.fonts['large_button'],
+            fg_color=self.colors['primary'],
+            hover_color=self.colors['primary_dark']
+        )
+        self.download_all_button.pack(side=tk.LEFT, padx=(0, 10))
+
+        # Control buttons
+        control_buttons = ctk.CTkFrame(button_container, fg_color="transparent")
+        control_buttons.pack(side=tk.RIGHT)
+
+        self.pause_all_button = ctk.CTkButton(
+            control_buttons,
+            text="⏸️ Pause All",
+            command=self.pause_all_downloads,
+            state=tk.DISABLED,
+            height=35,
+            width=120,
+            font=self.fonts['button'],
+            fg_color=self.colors['warning']
+        )
+        self.pause_all_button.pack(side=tk.LEFT, padx=5)
+
+        self.cancel_all_button = ctk.CTkButton(
+            control_buttons,
+            text="⏹️ Stop All",
+            command=self.cancel_all_downloads,
+            state=tk.DISABLED,
+            height=35,
+            width=120,
+            font=self.fonts['button'],
+            fg_color=self.colors['danger']
+        )
+        self.cancel_all_button.pack(side=tk.LEFT, padx=5)
+
+    # === NEW ENHANCED TAB METHODS ===
+    
+    def setup_history_tab(self):
+        """Setup the download history tab."""
+        tab = self.tab_history
+        
+        # Header
+        header_frame = ctk.CTkFrame(tab, height=60, fg_color=self.colors['surface'])
+        header_frame.pack(fill=tk.X, pady=(0, 15))
+        header_frame.pack_propagate(False)
+        
+        ctk.CTkLabel(
+            header_frame,
+            text="📜 Download History",
+            font=self.fonts['title'],
+            text_color=self.colors['text_primary']
+        ).pack(pady=20)
+        
+        # Controls
+        controls_frame = ctk.CTkFrame(tab, fg_color=self.colors['surface'])
+        controls_frame.pack(fill=tk.X, pady=(0, 15))
+        
+        buttons_frame = ctk.CTkFrame(controls_frame, fg_color="transparent")
+        buttons_frame.pack(pady=10)
+        
+        ctk.CTkButton(
+            buttons_frame,
+            text="🔄 Refresh",
+            command=self.refresh_history,
+            width=100,
+            height=30
+        ).pack(side=tk.LEFT, padx=5)
+        
+        ctk.CTkButton(
+            buttons_frame,
+            text="🗑️ Clear History",
+            command=self.clear_history,
+            width=120,
+            height=30,
+            fg_color=self.colors['danger']
+        ).pack(side=tk.LEFT, padx=5)
+        
+        ctk.CTkButton(
+            buttons_frame,
+            text="� Export Report",
+            command=self.export_history,
+            width=120,
+            height=30,
+            fg_color=self.colors['info']
+        ).pack(side=tk.LEFT, padx=5)
+        
+        # History list
+        self.history_frame = ctk.CTkScrollableFrame(
+            tab,
+            fg_color=self.colors['surface']
+        )
+        self.history_frame.pack(fill=tk.BOTH, expand=True)
+
+    def setup_favorites_tab(self):
+        """Setup the favorites/bookmarks tab."""
+        tab = self.tab_favorites
+        
+        # Header
+        header_frame = ctk.CTkFrame(tab, height=60, fg_color=self.colors['surface'])
+        header_frame.pack(fill=tk.X, pady=(0, 15))
+        header_frame.pack_propagate(False)
+        
+        ctk.CTkLabel(
+            header_frame,
+            text="⭐ Favorite Playlists",
+            font=self.fonts['title'],
+            text_color=self.colors['text_primary']
+        ).pack(pady=20)
+        
+        # Add current playlist to favorites
+        add_frame = ctk.CTkFrame(tab, fg_color=self.colors['surface'])
+        add_frame.pack(fill=tk.X, pady=(0, 15))
+        
+        buttons_frame = ctk.CTkFrame(add_frame, fg_color="transparent")
+        buttons_frame.pack(pady=10)
+        
+        self.add_favorite_button = ctk.CTkButton(
+            buttons_frame,
+            text="⭐ Add Current Playlist",
+            command=self.add_to_favorites,
+            width=180,
+            height=35,
+            state=tk.DISABLED
+        )
+        self.add_favorite_button.pack(side=tk.LEFT, padx=5)
+        
+        ctk.CTkButton(
+            buttons_frame,
+            text="🗑️ Clear Favorites",
+            command=self.clear_favorites,
+            width=130,
+            height=35,
+            fg_color=self.colors['danger']
+        ).pack(side=tk.LEFT, padx=5)
+        
+        # Favorites list
+        self.favorites_frame = ctk.CTkScrollableFrame(
+            tab,
+            fg_color=self.colors['surface']
+        )
+        self.favorites_frame.pack(fill=tk.BOTH, expand=True)
+
+    def setup_settings_tab(self):
+        """Setup the settings and preferences tab."""
+        tab = self.tab_settings
+        
+        # Header
+        header_frame = ctk.CTkFrame(tab, height=60, fg_color=self.colors['surface'])
+        header_frame.pack(fill=tk.X, pady=(0, 20))
+        header_frame.pack_propagate(False)
+        
+        ctk.CTkLabel(
+            header_frame,
+            text="⚙️ Settings & Preferences",
+            font=self.fonts['title'],
+            text_color=self.colors['text_primary']
+        ).pack(pady=20)
+        
+        # Settings container
+        settings_container = ctk.CTkFrame(tab, fg_color="transparent")
+        settings_container.pack(fill=tk.BOTH, expand=True, padx=20)
+        
+        # General Settings
+        general_frame = ctk.CTkFrame(settings_container, fg_color=self.colors['surface'])
+        general_frame.pack(fill=tk.X, pady=(0, 15))
+        
+        ctk.CTkLabel(
+            general_frame,
+            text="🎛️ General Settings",
+            font=self.fonts['heading']
+        ).pack(anchor="w", padx=15, pady=(15, 10))
+        
+        # Theme selection
+        theme_frame = ctk.CTkFrame(general_frame, fg_color="transparent")
+        theme_frame.pack(fill=tk.X, padx=15, pady=(0, 10))
+        
+        ctk.CTkLabel(theme_frame, text="🎨 Theme:", font=self.fonts['body']).pack(side=tk.LEFT)
+        self.theme_var = ctk.StringVar(value="Dark")
+        theme_menu = ctk.CTkOptionMenu(
+            theme_frame,
+            values=["Dark", "Light", "System"],
+            variable=self.theme_var,
+            command=self.change_theme,
+            width=120
+        )
+        theme_menu.pack(side=tk.RIGHT)
+        
+        # Concurrent downloads
+        concurrent_frame = ctk.CTkFrame(general_frame, fg_color="transparent")
+        concurrent_frame.pack(fill=tk.X, padx=15, pady=(0, 10))
+        
+        ctk.CTkLabel(concurrent_frame, text="🔄 Max Concurrent Downloads:", font=self.fonts['body']).pack(side=tk.LEFT)
+        self.concurrent_var = ctk.StringVar(value="3")
+        concurrent_menu = ctk.CTkOptionMenu(
+            concurrent_frame,
+            values=["1", "2", "3", "4", "5"],
+            variable=self.concurrent_var,
+            width=80
+        )
+        concurrent_menu.pack(side=tk.RIGHT)
+        
+        # Auto-start downloads
+        self.auto_start_var = ctk.BooleanVar(value=False)
+        ctk.CTkCheckBox(
+            general_frame,
+            text="🚀 Auto-start downloads when playlist loads",
+            variable=self.auto_start_var,
+            font=self.fonts['body']
+        ).pack(anchor="w", padx=15, pady=5)
+        
+        # Show notifications
+        self.notifications_var = ctk.BooleanVar(value=True)
+        ctk.CTkCheckBox(
+            general_frame,
+            text="🔔 Show completion notifications",
+            variable=self.notifications_var,
+            font=self.fonts['body']
+        ).pack(anchor="w", padx=15, pady=(5, 15))
+        
+        # Advanced Settings
+        advanced_frame = ctk.CTkFrame(settings_container, fg_color=self.colors['surface'])
+        advanced_frame.pack(fill=tk.X, pady=(0, 15))
+        
+        ctk.CTkLabel(
+            advanced_frame,
+            text="🔧 Advanced Settings",
+            font=self.fonts['heading']
+        ).pack(anchor="w", padx=15, pady=(15, 10))
+        
+        # Keep temporary files
+        self.keep_temp_var = ctk.BooleanVar(value=False)
+        ctk.CTkCheckBox(
+            advanced_frame,
+            text="📁 Keep temporary files for debugging",
+            variable=self.keep_temp_var,
+            font=self.fonts['body']
+        ).pack(anchor="w", padx=15, pady=5)
+        
+        # Retry failed downloads
+        retry_frame = ctk.CTkFrame(advanced_frame, fg_color="transparent")
+        retry_frame.pack(fill=tk.X, padx=15, pady=(0, 10))
+        
+        ctk.CTkLabel(retry_frame, text="🔄 Retry failed downloads:", font=self.fonts['body']).pack(side=tk.LEFT)
+        self.retry_var = ctk.StringVar(value="3")
+        retry_menu = ctk.CTkOptionMenu(
+            retry_frame,
+            values=["0", "1", "2", "3", "5"],
+            variable=self.retry_var,
+            width=80
+        )
+        retry_menu.pack(side=tk.RIGHT)
+        
+        # Save/Reset buttons
+        button_frame = ctk.CTkFrame(advanced_frame, fg_color="transparent")
+        button_frame.pack(fill=tk.X, padx=15, pady=(10, 15))
+        
+        ctk.CTkButton(
+            button_frame,
+            text="💾 Save Settings",
+            command=self.save_preferences,
+            width=120,
+            height=35,
+            fg_color=self.colors['success']
+        ).pack(side=tk.LEFT, padx=(0, 10))
+        
+        ctk.CTkButton(
+            button_frame,
+            text="🔄 Reset to Defaults",
+            command=self.reset_preferences,
+            width=150,
+            height=35,
+            fg_color=self.colors['warning']
+        ).pack(side=tk.LEFT)
+
+    def setup_about_tab(self):
+        """Setup the about and help tab."""
+        tab = self.tab_about
+        
+        # Header with logo/icon
+        header_frame = ctk.CTkFrame(tab, height=120, fg_color=self.colors['primary'])
+        header_frame.pack(fill=tk.X, pady=(0, 20))
+        header_frame.pack_propagate(False)
+        
+        ctk.CTkLabel(
+            header_frame,
+            text="🎵 YouTube Playlist Downloader Pro",
+            font=ctk.CTkFont(size=28, weight="bold"),
+            text_color="white"
+        ).pack(pady=(20, 5))
+        
+        ctk.CTkLabel(
+            header_frame,
+            text="Version 2.0 - Professional Edition",
+            font=self.fonts['subtitle'],
+            text_color="#FFE0E0"
+        ).pack()
+        
+        # Content container
+        content_frame = ctk.CTkScrollableFrame(tab, fg_color="transparent")
+        content_frame.pack(fill=tk.BOTH, expand=True, padx=20)
+        
+        # Features section
+        features_frame = ctk.CTkFrame(content_frame, fg_color=self.colors['surface'])
+        features_frame.pack(fill=tk.X, pady=(0, 15))
+        
+        ctk.CTkLabel(
+            features_frame,
+            text="✨ Features",
+            font=self.fonts['heading']
+        ).pack(anchor="w", padx=15, pady=(15, 10))
+        
+        features_text = """
+• 🎥 High-quality video downloads (up to 4K)
+• 🎵 Audio-only downloads in multiple formats
+• 📱 Batch processing for entire playlists
+• 🖼️ Thumbnail and subtitle support
+• 📂 Smart organization with folders
+• 📜 Download history tracking
+• ⭐ Favorite playlists management
+• 🔄 Auto-retry for failed downloads
+• 🎨 Modern dark/light theme support
+• 📊 Real-time progress monitoring
+        """
+        
+        ctk.CTkLabel(
+            features_frame,
+            text=features_text.strip(),
+            font=self.fonts['body'],
+            anchor="w",
+            justify="left"
+        ).pack(anchor="w", padx=15, pady=(0, 15))
+        
+        # System info
+        info_frame = ctk.CTkFrame(content_frame, fg_color=self.colors['surface'])
+        info_frame.pack(fill=tk.X, pady=(0, 15))
+        
+        ctk.CTkLabel(
+            info_frame,
+            text="ℹ️ System Information",
+            font=self.fonts['heading']
+        ).pack(anchor="w", padx=15, pady=(15, 10))
+        
+        try:
+            import platform
+            system_info = f"""
+• Operating System: {platform.system()} {platform.release()}
+• Python Version: {platform.python_version()}
+• Architecture: {platform.machine()}
+• Processor: {platform.processor()[:50]}...
+            """
+        except:
+            system_info = "• System information unavailable"
+        
+        ctk.CTkLabel(
+            info_frame,
+            text=system_info.strip(),
+            font=self.fonts['small'],
+            anchor="w",
+            justify="left",
+            text_color=self.colors['text_secondary']
+        ).pack(anchor="w", padx=15, pady=(0, 15))
+        
+        # Links and actions
+        links_frame = ctk.CTkFrame(content_frame, fg_color=self.colors['surface'])
+        links_frame.pack(fill=tk.X, pady=(0, 15))
+        
+        ctk.CTkLabel(
+            links_frame,
+            text="🔗 Links & Support",
+            font=self.fonts['heading']
+        ).pack(anchor="w", padx=15, pady=(15, 10))
+        
+        buttons_frame = ctk.CTkFrame(links_frame, fg_color="transparent")
+        buttons_frame.pack(fill=tk.X, padx=15, pady=(0, 15))
+        
+        ctk.CTkButton(
+            buttons_frame,
+            text="🌐 Visit GitHub",
+            command=lambda: webbrowser.open("https://github.com/"),
+            width=120,
+            height=35
+        ).pack(side=tk.LEFT, padx=(0, 10))
+        
+        ctk.CTkButton(
+            buttons_frame,
+            text="📁 Open Download Folder",
+            command=self.open_download_folder,
+            width=180,
+            height=35,
+            fg_color=self.colors['info']
+        ).pack(side=tk.LEFT, padx=(0, 10))
+        
+        ctk.CTkButton(
+            buttons_frame,
+            text="🔧 Check Dependencies",
+            command=self.check_dependencies,
+            width=160,
+            height=35,
+            fg_color=self.colors['accent']
+        ).pack(side=tk.LEFT)
 
     def create_path_section(self, parent):
         """Create the download path selection section."""
