@@ -10,10 +10,20 @@ import re
 import time
 from datetime import datetime
 import webbrowser
-from PIL import Image, ImageTk
-import requests
-from io import BytesIO
 import urllib.parse
+
+# Optional imports for enhanced features
+try:
+    from PIL import Image, ImageTk
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
+
+try:
+    import requests
+    REQUESTS_AVAILABLE = True
+except ImportError:
+    REQUESTS_AVAILABLE = False
 
 # Set the appearance mode and color theme
 ctk.set_appearance_mode("dark")  # Modes: "System" (standard), "Dark", "Light"
