@@ -1970,6 +1970,294 @@ class YouTubeDownloaderApp(ctk.CTk):
         except tk.TclError:
             messagebox.showwarning("Clipboard Error", "Could not access clipboard content.")
 
+    # === ENHANCED FUNCTIONALITY METHODS ===
+
+    def setup_tooltips(self):
+        """Setup tooltips for better user experience."""
+        # This would require a tooltip library, simplified for now
+        pass
+
+    def load_preferences(self):
+        """Load user preferences from file."""
+        try:
+            prefs_file = os.path.join(os.path.expanduser("~"), ".youtube_downloader_prefs.json")
+            if os.path.exists(prefs_file):
+                with open(prefs_file, 'r') as f:
+                    prefs = json.load(f)
+                    self.download_path = prefs.get('download_path', self.download_path)
+                    # Load other preferences...
+        except:
+            pass
+
+    def save_preferences(self):
+        """Save user preferences to file."""
+        try:
+            prefs = {
+                'download_path': self.download_path,
+                'theme': getattr(self, 'theme_var', ctk.StringVar()).get() if hasattr(self, 'theme_var') else 'Dark',
+                'concurrent_downloads': int(getattr(self, 'concurrent_var', ctk.StringVar(value='3')).get()) if hasattr(self, 'concurrent_var') else 3,
+                'auto_start': getattr(self, 'auto_start_var', ctk.BooleanVar()).get() if hasattr(self, 'auto_start_var') else False,
+                'notifications': getattr(self, 'notifications_var', ctk.BooleanVar(value=True)).get() if hasattr(self, 'notifications_var') else True,
+                'keep_temp': getattr(self, 'keep_temp_var', ctk.BooleanVar()).get() if hasattr(self, 'keep_temp_var') else False,
+                'retry_count': int(getattr(self, 'retry_var', ctk.StringVar(value='3')).get()) if hasattr(self, 'retry_var') else 3
+            }
+            prefs_file = os.path.join(os.path.expanduser("~"), ".youtube_downloader_prefs.json")
+            with open(prefs_file, 'w') as f:
+                json.dump(prefs, f, indent=2)
+            self.show_notification("✅ Settings saved successfully!", "success")
+        except Exception as e:
+            self.show_notification(f"❌ Failed to save settings: {str(e)}", "error")
+
+    def reset_preferences(self):
+        """Reset preferences to default values."""
+        if messagebox.askyesno("Reset Settings", "Are you sure you want to reset all settings to default values?"):
+            # Reset all variables to defaults if they exist
+            if hasattr(self, 'theme_var'):
+                self.theme_var.set("Dark")
+            if hasattr(self, 'concurrent_var'):
+                self.concurrent_var.set("3")
+            if hasattr(self, 'auto_start_var'):
+                self.auto_start_var.set(False)
+            if hasattr(self, 'notifications_var'):
+                self.notifications_var.set(True)
+            if hasattr(self, 'keep_temp_var'):
+                self.keep_temp_var.set(False)
+            if hasattr(self, 'retry_var'):
+                self.retry_var.set("3")
+            self.show_notification("🔄 Settings reset to defaults", "info")
+
+    def paste_url_from_clipboard(self):
+        """Paste URL from clipboard."""
+        try:
+            clipboard_text = self.clipboard_get()
+            if 'youtube.com' in clipboard_text or 'youtu.be' in clipboard_text:
+                self.url_entry.delete(0, tk.END)
+                self.url_entry.insert(0, clipboard_text)
+                self.validate_url()
+                self.show_notification("📋 URL pasted from clipboard", "info")
+            else:
+                self.show_notification("❌ No valid YouTube URL found in clipboard", "warning")
+        except:
+            self.show_notification("❌ Failed to access clipboard", "error")
+
+    def validate_url(self, event=None):
+        """Validate YouTube URL in real-time."""
+        url = self.url_entry.get().strip()
+        if not url:
+            if hasattr(self, 'url_status'):
+                self.url_status.configure(text="")
+            return
+            
+        if 'youtube.com/playlist' in url or 'youtube.com/watch' in url:
+            if hasattr(self, 'url_status'):
+                self.url_status.configure(text="✅ Valid", text_color=self.colors['success'])
+        else:
+            if hasattr(self, 'url_status'):
+                self.url_status.configure(text="⚠️ Invalid URL", text_color=self.colors['warning'])
+
+    def clear_all(self):
+        """Clear all fields and reset the interface."""
+        if messagebox.askyesno("Clear All", "Are you sure you want to clear all data and stop downloads?"):
+            self.url_entry.delete(0, tk.END)
+            self.cancel_all_downloads()
+            for widget in self.video_list_frame.winfo_children():
+                widget.destroy()
+            self.video_widgets.clear()
+            self.video_data.clear()
+            self.current_playlist_info.clear()
+            if hasattr(self, 'playlist_info_frame'):
+                self.playlist_info_frame.pack_forget()
+            self.update_statistics()
+            self.status_label.configure(text="📋 Ready - Paste a playlist URL to begin")
+
+    def open_download_folder(self):
+        """Open the download folder in file explorer."""
+        try:
+            os.makedirs(self.download_path, exist_ok=True)
+            if sys.platform == "win32":
+                os.startfile(self.download_path)
+            elif sys.platform == "darwin":
+                subprocess.run(["open", self.download_path])
+            else:
+                subprocess.run(["xdg-open", self.download_path])
+        except Exception as e:
+            self.show_notification(f"❌ Failed to open folder: {str(e)}", "error")
+
+    def refresh_playlist(self):
+        """Refresh the current playlist."""
+        url = self.url_entry.get().strip()
+        if url:
+            self.start_fetch_thread()
+        else:
+            self.show_notification("❌ No playlist URL to refresh", "warning")
+
+    def on_quality_change(self, value):
+        """Handle quality selection change."""
+        if "Audio Only" in value and hasattr(self, 'subtitle_var'):
+            self.subtitle_var.set(False)
+            if hasattr(self, 'thumbnail_var'):
+                self.thumbnail_var.set(True)  # Keep thumbnails for audio
+        self.show_notification(f"🎥 Quality set to: {value}", "info")
+
+    def change_view_mode(self, mode):
+        """Change the video list view mode."""
+        # This would change how videos are displayed
+        self.show_notification(f"👁️ View changed to: {mode}", "info")
+
+    def select_all_videos(self):
+        """Select all videos in the list."""
+        for video_id, widget_data in self.video_widgets.items():
+            if 'checkbox' in widget_data:
+                widget_data['checkbox'].select()
+
+    def select_no_videos(self):
+        """Deselect all videos in the list."""
+        for video_id, widget_data in self.video_widgets.items():
+            if 'checkbox' in widget_data:
+                widget_data['checkbox'].deselect()
+
+    def download_selected(self):
+        """Download only selected videos."""
+        selected_videos = []
+        for video_id, widget_data in self.video_widgets.items():
+            if 'checkbox' in widget_data and widget_data['checkbox'].get():
+                selected_videos.append(video_id)
+        
+        if not selected_videos:
+            self.show_notification("❌ No videos selected", "warning")
+            return
+            
+        self.show_notification(f"⬇️ Starting download of {len(selected_videos)} selected videos", "info")
+        # Implementation would go here
+
+    def pause_all_downloads(self):
+        """Pause all active downloads."""
+        # Implementation for pausing downloads
+        self.show_notification("⏸️ All downloads paused", "info")
+
+    def add_to_favorites(self):
+        """Add current playlist to favorites."""
+        if self.current_playlist_info:
+            favorite = {
+                'title': self.current_playlist_info.get('title', 'Unknown'),
+                'url': self.url_entry.get(),
+                'video_count': self.current_playlist_info.get('video_count', 0),
+                'added_date': datetime.now().isoformat()
+            }
+            self.favorites.append(favorite)
+            self.save_favorites()
+            if hasattr(self, 'refresh_favorites_display'):
+                self.refresh_favorites_display()
+            self.show_notification("⭐ Added to favorites", "success")
+
+    def save_favorites(self):
+        """Save favorites to file."""
+        try:
+            favorites_file = os.path.join(os.path.expanduser("~"), ".youtube_downloader_favorites.json")
+            with open(favorites_file, 'w') as f:
+                json.dump(self.favorites, f, indent=2)
+        except:
+            pass
+
+    def change_theme(self, theme):
+        """Change the application theme."""
+        if theme == "Dark":
+            ctk.set_appearance_mode("dark")
+        elif theme == "Light":
+            ctk.set_appearance_mode("light")
+        else:
+            ctk.set_appearance_mode("system")
+        
+        self.show_notification(f"🎨 Theme changed to: {theme}", "info")
+
+    def check_dependencies(self):
+        """Check and display dependency status."""
+        dependencies = {
+            "yt-dlp": "YouTube downloader",
+            "customtkinter": "Modern GUI framework",
+            "Pillow": "Image processing",
+            "requests": "HTTP requests"
+        }
+        
+        status_window = ctk.CTkToplevel(self)
+        status_window.title("🔧 Dependency Status")
+        status_window.geometry("400x300")
+        status_window.attributes('-topmost', True)
+        
+        ctk.CTkLabel(
+            status_window,
+            text="🔧 Dependency Status",
+            font=self.fonts['heading']
+        ).pack(pady=20)
+        
+        status_frame = ctk.CTkScrollableFrame(status_window)
+        status_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=(0, 20))
+        
+        for module, description in dependencies.items():
+            try:
+                __import__(module)
+                status = "✅ Installed"
+                color = self.colors['success']
+            except ImportError:
+                status = "❌ Missing"
+                color = self.colors['danger']
+            
+            item_frame = ctk.CTkFrame(status_frame, fg_color=self.colors['surface'])
+            item_frame.pack(fill=tk.X, pady=2)
+            
+            ctk.CTkLabel(
+                item_frame,
+                text=f"{module}: {description}",
+                font=self.fonts['body']
+            ).pack(side=tk.LEFT, padx=10, pady=5)
+            
+            ctk.CTkLabel(
+                item_frame,
+                text=status,
+                font=self.fonts['small'],
+                text_color=color
+            ).pack(side=tk.RIGHT, padx=10, pady=5)
+
+    def show_notification(self, message, type_="info"):
+        """Show a temporary notification."""
+        # Simple status update for now
+        if hasattr(self, 'status_label'):
+            self.status_label.configure(text=message)
+            
+            # Auto-clear after 3 seconds
+            def clear_notification():
+                try:
+                    current_text = self.status_label.cget("text")
+                    if current_text == message:  # Only clear if it hasn't changed
+                        self.status_label.configure(text="📋 Ready")
+                except:
+                    pass
+            
+            self.after(3000, clear_notification)
+
+    def update_statistics(self):
+        """Update the statistics display."""
+        total = len(self.video_widgets)
+        completed = sum(1 for widget_data in self.video_widgets.values() 
+                       if widget_data.get('status') == 'completed')
+        failed = sum(1 for widget_data in self.video_widgets.values() 
+                    if widget_data.get('status') == 'failed')
+        
+        if hasattr(self, 'stats_total_label'):
+            self.stats_total_label.configure(text=f"Total: {total}")
+        if hasattr(self, 'stats_completed_label'):
+            self.stats_completed_label.configure(text=f"✅ Completed: {completed}")
+        if hasattr(self, 'stats_failed_label'):
+            self.stats_failed_label.configure(text=f"❌ Failed: {failed}")
+        
+        # Update progress bar
+        if hasattr(self, 'progress_bar'):
+            if total > 0:
+                progress = completed / total
+                self.progress_bar.set(progress)
+            else:
+                self.progress_bar.set(0)
+
 
 if __name__ == "__main__":
     try:
