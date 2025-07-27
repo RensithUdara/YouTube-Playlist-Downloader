@@ -80,16 +80,37 @@ class YouTubeDownloaderApp(ctk.CTk):
         self.geometry(f"{width}x{height}+{x}+{y}")
 
     def setup_styles(self):
-        """Setup custom styling for the application."""
-        # Custom colors
+        """Setup enhanced custom styling for the application."""
+        # Enhanced color palette
         self.colors = {
-            'primary': "#1f538d",
-            'secondary': "#14375e", 
-            'success': "#2d5016",
-            'warning': "#8b4513",
-            'danger': "#8b1538",
-            'background': "#212121",
-            'surface': "#2b2b2b"
+            'primary': "#FF0000",      # YouTube Red
+            'primary_dark': "#CC0000",  # Darker YouTube Red
+            'secondary': "#282828",     # YouTube Dark Gray
+            'secondary_light': "#3F3F3F",
+            'success': "#00C851",       # Success Green
+            'warning': "#FF8800",       # Warning Orange
+            'danger': "#FF4444",        # Danger Red
+            'info': "#0099FF",          # Info Blue
+            'background': "#181818",    # Dark Background
+            'surface': "#282828",       # Surface Gray
+            'surface_light': "#3F3F3F", # Light Surface
+            'text_primary': "#FFFFFF",  # Primary Text
+            'text_secondary': "#AAAAAA", # Secondary Text
+            'border': "#444444",        # Border Color
+            'accent': "#4285F4",        # Accent Blue
+            'gradient_start': "#FF0000",
+            'gradient_end': "#CC0000"
+        }
+        
+        # Font configurations
+        self.fonts = {
+            'title': ctk.CTkFont(size=28, weight="bold"),
+            'subtitle': ctk.CTkFont(size=14),
+            'heading': ctk.CTkFont(size=16, weight="bold"),
+            'body': ctk.CTkFont(size=12),
+            'small': ctk.CTkFont(size=10),
+            'button': ctk.CTkFont(size=12, weight="bold"),
+            'large_button': ctk.CTkFont(size=14, weight="bold")
         }
 
     def create_widgets(self):
